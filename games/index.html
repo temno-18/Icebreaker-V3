@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icebreaker • Games</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="stars"></div>
+
+  <div class="topbar">
+    <a class="brand" href="../index.html">Icebreaker</a>
+    <div class="toplinks">
+      <a href="../keys.html">Keys</a>
+      <a href="../index.html">Home</a>
+    </div>
+  </div>
+
+  <main class="games-shell">
+    <section class="games-head">
+      <div>
+        <div class="pill">GAMES</div>
+        <h1>Browse your game library</h1>
+        <p class="sub">Paste your normal JSON into <code>js/games.js</code>. The page reads <code>name</code>, <code>url</code>, and optional <code>image</code>.</p>
+      </div>
+      <input id="search" class="input search" type="text" placeholder="Search games..." oninput="searchGames()" />
+    </section>
+
+    <section id="gameContainer" class="games-grid"></section>
+  </main>
+
+  <div id="siteBanner" class="bottom-banner"></div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/games.js"></script>
+  <script src="../js/loadGames.js"></script>
+  <script src="../js/stars.js"></script>
+  <script src="../js/banner.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icebreaker • Keys</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="stars"></div>
+  <main class="auth-wrap">
+    <div class="auth-card">
+      <div class="pill">ACCESS</div>
+      <h1>Enter your key</h1>
+      <p class="sub">Use a user key for normal access or an admin key for admin mode.</p>
+
+      <div class="field-group">
+        <input id="keyInput" class="input" type="password" placeholder="Enter key" />
+        <button class="btn btn-primary full" onclick="checkKey()">Continue</button>
+      </div>
+
+      <p id="status" class="status"></p>
+
+      <div class="auth-links">
+        <a href="index.html">Back home</a>
+        <a href="games/index.html">Games</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="siteBanner" class="bottom-banner"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/stars.js"></script>
+  <script src="js/banner.js"></script>
+</body>
+</html>
