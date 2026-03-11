@@ -27,8 +27,8 @@ function createCard(game){
   `;
 
   card.addEventListener("click", () => {
-    window.open(safeUrl, "_blank", "noopener,noreferrer");
-  });
+  window.location.href = "play.html?url=" + encodeURIComponent(safeUrl);
+});
 
   return card;
 }
