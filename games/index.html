@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Icebreaker • Games</title>
   <link rel="stylesheet" href="../css/style.css" />
+<script src="../js/config.js"></script>
+<script>
+  const savedKey = localStorage.getItem("icebreaker_key");
+  const allowed =
+    SITE_CONFIG.userKeys.includes(savedKey) ||
+    SITE_CONFIG.adminKeys.includes(savedKey);
+
+  if (!allowed) {
+    window.location.href = "../keys.html";
+  }
+</script>
 </head>
 <body>
   <div class="stars"></div>
