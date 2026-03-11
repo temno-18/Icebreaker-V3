@@ -1,5 +1,4 @@
 const games = [
-[
   {
       "name": "1v1.lol",
       "image": "https://img.poki.com/cdn-cgi/image/quality=78,width=600,height=600,fit=cover,f=auto/eee0e57332c4546fc492e8361a48cb32.jpeg",
