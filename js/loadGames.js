@@ -7,11 +7,13 @@ function createCard(game) {
 
   const title = game.title || "Untitled";
   const link = game.link || "#";
-  const imgSrc = game.imgSrc || "";
 
-  const thumb = imgSrc
-    ? `<img class="game-thumb" src="../${imgSrc}" alt="${title}" onerror="this.style.display='none'">`
-    : `<div class="thumb-fallback">${title.charAt(0).toUpperCase()}</div>`;
+  // use provided imgSrc OR auto-load jpg from file
+  const imgSrc = game.imgSrc || `images/${title.toLowerCase().replace(/\s+/g, "-")}.jpg`;
+
+  const thumb = `
+    <img class="game-thumb" src="../${imgSrc}" alt="${title}" onerror="this.style.display='none'">
+  `;
 
   card.innerHTML = `
     ${thumb}
