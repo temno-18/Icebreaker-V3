@@ -1,6 +1,5 @@
 const games = [
-[
-  {
+{
     "link": "projects/1/index.html",
     "imgSrc": "projects/1/meta/apple-touch-icon.png",
     "title": "1"
