@@ -1,51 +1,59 @@
 const container = document.getElementById("gameContainer");
 const search = document.getElementById("search");
 
-function fallbackMarkup(name){
-  const letter = (name || "?").trim().charAt(0).toUpperCase() || "?";
-  return `<div class="thumb-fallback">${letter}</div>`;
-}
-
-function createCard(game){
+function createCard(game) {
   const card = document.createElement("article");
   card.className = "game-card";
 
-  const safeName = game && game.name ? game.name : "Untitled";
-  const safeUrl = game && game.url ? game.url : "#";
-  const image = game && game.image ? game.image : "";
+  const title = game.title || "Untitled";
+  const link = game.link || "#";
+  const imgSrc = game.imgSrc || "";
 
-  let thumb = image
-    ? `<img class="game-thumb" src="${image}" alt="${safeName}" onerror="this.outerHTML='${fallbackMarkup(safeName).replace(/'/g, "&apos;")}'">`
-    : fallbackMarkup(safeName);
+  const thumb = imgSrc
+    ? `<img class="game-thumb" src="../${imgSrc}" alt="${title}" onerror="this.style.display='none'">`
+    : `<div class="thumb-fallback">${title.charAt(0).toUpperCase()}</div>`;
 
   card.innerHTML = `
     ${thumb}
     <div class="game-meta">
-      <h3 class="game-title">${safeName}</h3>
-      <p class="game-url">${safeUrl}</p>
+      <h3 class="game-title">${title}</h3>
+      <p class="game-url">${link}</p>
     </div>
   `;
 
   card.addEventListener("click", () => {
-  window.location.href = "play.html?url=" + encodeURIComponent(safeUrl);
-});
+    window.location.href = "../" + link;
+  });
 
   return card;
 }
 
-function render(list){
+function renderGames(list) {
   container.innerHTML = "";
-  if (!Array.isArray(list) || !list.length) {
-    container.innerHTML = `<div class="empty-state">No games matched your search.</div>`;
+
+  if (!Array.isArray(list) || list.length === 0) {
+    container.innerHTML = `<div class="empty-state">No games found.</div>`;
     return;
   }
-  list.forEach(game => container.appendChild(createCard(game)));
+
+  list.forEach((game) => {
+    container.appendChild(createCard(game));
+  });
 }
 
-function searchGames(){
-  const q = (search && search.value ? search.value : "").toLowerCase().trim();
-  if (!q) return render(games);
-  render(games.filter(g => ((g && g.name) ? g.name : "").toLowerCase().includes(q)));
+function searchGames() {
+  const query = (search?.value || "").toLowerCase().trim();
+
+  if (!query) {
+    renderGames(games);
+    return;
+  }
+
+  const filtered = games.filter((game) =>
+    (game.title || "").toLowerCase().includes(query)
+  );
+
+  renderGames(filtered);
 }
 
-render(games);
+renderGames(games);
