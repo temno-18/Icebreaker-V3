@@ -146,3 +146,15 @@ code{
   .hero-actions,.field-group,.auth-links{flex-direction:column}
   .btn{width:100%; text-align:center}
 }
+#device-id-display {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: monospace;
+  z-index: 9999;
+}
