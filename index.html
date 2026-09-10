@@ -6,7 +6,22 @@
   <title>Icebreaker</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<div id="device-id-display">
+  Device ID: <span id="device-id"></span>
+</div>
+
+<script>
+  let deviceId = localStorage.getItem("icebreaker_device_id");
+
+  // Generate one if they don't have one
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem("icebreaker_device_id", deviceId);
+  }
+
+  document.getElementById("device-id").textContent = deviceId;
+</script>
+  <body>
   <div class="stars"></div>
   <div class="page-shell">
     <header class="hero">
