@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icebreaker • Admin</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .admin-wrap { max-width: 900px; margin: 60px auto; padding: 20px; }
+    .admin-card { background: var(--panel); border:1px solid var(--line); border-radius:24px; padding:24px; box-shadow:var(--shadow); margin-bottom:18px; }
+    .admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .admin-row { display:flex; justify-content:space-between; gap:16px; align-items:center; padding:14px 0; border-top:1px solid var(--line); }
+    .danger { border-color: rgba(255,100,100,.35); }
+    .muted { color:var(--muted); }
+    .hidden { display:none !important; }
+    @media(max-width:700px){.admin-grid{grid-template-columns:1fr}.admin-row{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <main class="admin-wrap">
+    <div class="admin-card">
+      <div class="pill">ADMIN</div>
+      <h1>Icebreaker ban panel</h1>
+      <p class="muted">Manage device IDs that are blocked from Icebreaker.</p>
+    </div>
+
+    <section id="loginCard" class="admin-card">
+      <h2>Admin sign in</h2>
+      <div class="admin-grid">
+        <input id="email" class="input" type="email" placeholder="Admin email" autocomplete="username" />
+        <input id="password" class="input" type="password" placeholder="Password" autocomplete="current-password" />
+      </div>
+      <br />
+      <button id="loginBtn" class="btn btn-primary">Sign in</button>
+      <p id="loginStatus" class="muted"></p>
+    </section>
+
+    <section id="panel" class="hidden">
+      <div class="admin-card">
+        <h2>Ban a device</h2>
+        <div class="admin-grid">
+          <input id="deviceId" class="input" placeholder="Device ID" />
+          <input id="reason" class="input" placeholder="Reason (optional)" />
+        </div>
+        <br />
+        <button id="banBtn" class="btn btn-primary">Ban device</button>
+        <button id="logoutBtn" class="btn btn-secondary">Sign out</button>
+        <p id="actionStatus" class="muted"></p>
+      </div>
+
+      <div class="admin-card">
+        <h2>Banned devices</h2>
+        <p class="muted">Users can find their device ID in the browser console with <code>localStorage.getItem('icebreaker_device_id')</code>.</p>
+        <div id="banList"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const cfg = window.SUPABASE_CONFIG;
+    if (!cfg || !cfg.url || !cfg.anonKey || cfg.url.includes('PASTE_YOUR')) {
+      document.getElementById('loginStatus').textContent = 'Add your Supabase URL and publishable/anon key in js/supabase-config.js first.';
+    }
+    const db = (cfg && !cfg.url.includes('PASTE_YOUR')) ? window.supabase.createClient(cfg.url, cfg.anonKey) : null;
+    const loginCard = document.getElementById('loginCard');
+    const panel = document.getElementById('panel');
+
+    document.getElementById('loginBtn').onclick = async () => {
+      if (!db) return;
+      const status = document.getElementById('loginStatus');
+      status.textContent = 'Signing in...';
+      const { error } = await db.auth.signInWithPassword({
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value
+      });
+      if (error) { status.textContent = error.message; return; }
+      await showPanel();
+    };
+
+    document.getElementById('logoutBtn').onclick = async () => {
+      await db.auth.signOut();
+      panel.classList.add('hidden');
+      loginCard.classList.remove('hidden');
+    };
+
+    document.getElementById('banBtn').onclick = async () => {
+      const device_id = document.getElementById('deviceId').value.trim();
+      const reason = document.getElementById('reason').value.trim();
+      const status = document.getElementById('actionStatus');
+      if (!device_id) { status.textContent = 'Enter a device ID.'; return; }
+      const { error } = await db.from('icebreaker_bans').upsert({ device_id, reason }, { onConflict: 'device_id' });
+      status.textContent = error ? error.message : 'Device banned.';
+      if (!error) { document.getElementById('deviceId').value = ''; document.getElementById('reason').value = ''; await loadBans(); }
+    };
+
+    async function showPanel() {
+      loginCard.classList.add('hidden');
+      panel.classList.remove('hidden');
+      await loadBans();
+    }
+
+    async function loadBans() {
+      const list = document.getElementById('banList');
+      const { data, error } = await db.from('icebreaker_bans').select('device_id,reason,created_at').order('created_at', { ascending:false });
+      if (error) { list.textContent = error.message; return; }
+      if (!data.length) { list.innerHTML = '<p class="muted">No banned devices.</p>'; return; }
+      list.innerHTML = data.map(row => `
+        <div class="admin-row">
+          <div><strong>${escapeHtml(row.device_id)}</strong><br><span class="muted">${escapeHtml(row.reason || 'No reason')}</span></div>
+          <button class="btn btn-secondary" onclick="unban('${encodeURIComponent(row.device_id)}')">Unban</button>
+        </div>`).join('');
+    }
+
+    window.unban = async function(encodedId) {
+      const device_id = decodeURIComponent(encodedId);
+      const { error } = await db.from('icebreaker_bans').delete().eq('device_id', device_id);
+      document.getElementById('actionStatus').textContent = error ? error.message : 'Device unbanned.';
+      await loadBans();
+    };
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+
+    db?.auth.getSession().then(({ data }) => { if (data.session) showPanel(); });
+  </script>
+</body>
+</html>
