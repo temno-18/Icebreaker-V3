@@ -5,33 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Icebreaker</title>
   <link rel="stylesheet" href="css/style.css" />
+
+  <style>
+    #device-id-display {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.75);
+      color: white;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: monospace;
+      z-index: 9999;
+    }
+  </style>
 </head>
-<div id="device-id-display">
-  Device ID: <span id="device-id"></span>
-</div>
 
-<script>
-  let deviceId = localStorage.getItem("icebreaker_device_id");
-
-  // Generate one if they don't have one
-  if (!deviceId) {
-    deviceId = crypto.randomUUID();
-    localStorage.setItem("icebreaker_device_id", deviceId);
-  }
-
-  document.getElementById("device-id").textContent = deviceId;
-</script>
-  <body>
+<body>
   <div class="stars"></div>
+
   <div class="page-shell">
     <header class="hero">
       <div class="pill">ICEBREAKER</div>
       <h1>taco tuesday</h1>
-      <p class="sub">site will be updated with aton of features and games this coming week </p>
+      <p class="sub">
+        site will be updated with aton of features and games this coming week
+      </p>
+
       <div class="hero-actions">
         <a class="btn btn-primary" href="keys.html">Enter site</a>
         <a class="btn btn-secondary" href="games/index.html">Browse games</a>
       </div>
+
       <div class="credit">by Oscar</div>
     </header>
 
@@ -40,10 +46,12 @@
         <h3>Keys</h3>
         <p>Separate login page with user and admin keys.</p>
       </a>
+
       <a class="home-card" href="games/index.html">
         <h3>Games</h3>
         <p>very cool skidded.</p>
       </a>
+
       <a class="home-card" href="README.txt">
         <h3>Settings</h3>
         <p>may or may not exist yet</p>
@@ -53,58 +61,82 @@
 
   <div id="siteBanner" class="bottom-banner"></div>
 
+  <div id="device-id-display">
+    Device ID: <span id="device-id"></span>
+  </div>
+
+  <!-- Your existing scripts -->
   <script src="js/config.js"></script>
   <script src="js/stars.js"></script>
   <script src="js/banner.js"></script>
+
+  <!-- Supabase -->
+  <script src="js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Device ID + Ban Check -->
+  <script>
+    let deviceId = localStorage.getItem("icebreaker_device_id");
+
+    if (!deviceId) {
+      deviceId = crypto.randomUUID();
+      localStorage.setItem("icebreaker_device_id", deviceId);
+    }
+
+    document.getElementById("device-id").textContent = deviceId;
+
+    const cfg = window.SUPABASE_CONFIG;
+
+    if (cfg && window.supabase) {
+      const db = window.supabase.createClient(
+        cfg.url,
+        cfg.anonKey
+      );
+
+      async function checkBan() {
+        const { data, error } = await db
+          .from("icebreaker_bans")
+          .select("device_id, reason")
+          .eq("device_id", deviceId)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Ban check failed:", error);
+          return;
+        }
+
+        if (data) {
+          document.body.innerHTML = `
+            <div style="
+              min-height:100vh;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              background:#080808;
+              color:white;
+              font-family:Arial,sans-serif;
+              text-align:center;
+              padding:20px;
+            ">
+              <div>
+                <h1>🚫 You are banned</h1>
+                <p>This device has been blocked from Icebreaker.</p>
+                <p style="opacity:.6">
+                  Reason: ${data.reason || "No reason provided"}
+                </p>
+                <p style="opacity:.4;font-size:12px">
+                  Device ID: ${deviceId}
+                </p>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      checkBan();
+    } else {
+      console.error("Supabase configuration/library missing.");
+    }
+  </script>
 </body>
 </html>
-<script>
-  const cfg = window.SUPABASE_CONFIG;
-  const db = window.supabase.createClient(cfg.url, cfg.anonKey);
-
-  let deviceId = localStorage.getItem("icebreaker_device_id");
-
-  if (!deviceId) {
-    deviceId = crypto.randomUUID();
-    localStorage.setItem("icebreaker_device_id", deviceId);
-  }
-
-  async function checkBan() {
-    const { data, error } = await db
-      .from("icebreaker_bans")
-      .select("device_id, reason")
-      .eq("device_id", deviceId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Ban check failed:", error);
-      return;
-    }
-
-    if (data) {
-      document.body.innerHTML = `
-        <div style="
-          min-height:100vh;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          background:#080808;
-          color:white;
-          font-family:Arial,sans-serif;
-          text-align:center;
-          padding:20px;
-        ">
-          <div>
-            <h1>🚫 You are banned</h1>
-            <p>This device has been blocked from Icebreaker.</p>
-            <p style="opacity:.6">
-              Reason: ${data.reason || "No reason provided"}
-            </p>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  checkBan();
-</script>
