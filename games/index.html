@@ -4,39 +4,45 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Icebreaker • Games</title>
+
   <link rel="stylesheet" href="../css/style.css" />
-<script src="../js/config.js"></script>
-<script>
-  const savedKey = localStorage.getItem("icebreaker_key");
-  const allowed =
-    SITE_CONFIG.userKeys.includes(savedKey) ||
-    SITE_CONFIG.adminKeys.includes(savedKey);
 
-  if (!allowed) {
-    window.location.href = "../keys.html";
-  }
-</script>
+  <script src="../js/config.js"></script>
+
+  <script>
+    const savedKey = localStorage.getItem("icebreaker_key");
+    const allowed =
+      SITE_CONFIG.userKeys.includes(savedKey) ||
+      SITE_CONFIG.adminKeys.includes(savedKey);
+
+    if (!allowed) {
+      window.location.href = "../keys.html";
+    }
+  </script>
+
+  <style>
+    #device-id-display {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.75);
+      color: white;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: monospace;
+      z-index: 9999;
+    }
+  </style>
 </head>
-<div id="device-id-display">
-  Device ID: <span id="device-id"></span>
-</div>
 
-<script>
-  let deviceId = localStorage.getItem("icebreaker_device_id");
-
-  // Generate one if they don't have one
-  if (!deviceId) {
-    deviceId = crypto.randomUUID();
-    localStorage.setItem("icebreaker_device_id", deviceId);
-  }
-
-  document.getElementById("device-id").textContent = deviceId;
-</script>
-  <body>
+<body>
   <div class="stars"></div>
 
   <div class="topbar">
     <a class="brand" href="../index.html">Icebreaker</a>
+
     <div class="toplinks">
       <a href="../keys.html">Keys</a>
       <a href="../index.html">Home</a>
@@ -48,9 +54,15 @@
       <div>
         <div class="pill">GAMES</div>
         <h1>Browse your game library</h1>
-
       </div>
-      <input id="search" class="input search" type="text" placeholder="Search games..." oninput="searchGames()" />
+
+      <input
+        id="search"
+        class="input search"
+        type="text"
+        placeholder="Search games..."
+        oninput="searchGames()"
+      />
     </section>
 
     <section id="gameContainer" class="games-grid"></section>
@@ -58,60 +70,85 @@
 
   <div id="siteBanner" class="bottom-banner"></div>
 
+  <!-- Device ID -->
+  <div id="device-id-display">
+    Device ID: <span id="device-id"></span>
+  </div>
+
+  <!-- Existing Icebreaker scripts -->
   <script src="../js/config.js"></script>
   <script src="../js/games.js"></script>
   <script src="../js/loadGames.js"></script>
   <script src="../js/stars.js"></script>
   <script src="../js/banner.js"></script>
+
+  <!-- Supabase -->
+  <script src="../js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Device ID + Ban Protection -->
+  <script>
+    let deviceId = localStorage.getItem("icebreaker_device_id");
+
+    if (!deviceId) {
+      deviceId = crypto.randomUUID();
+      localStorage.setItem("icebreaker_device_id", deviceId);
+    }
+
+    document.getElementById("device-id").textContent = deviceId;
+
+    const cfg = window.SUPABASE_CONFIG;
+
+    if (cfg && window.supabase) {
+      const db = window.supabase.createClient(
+        cfg.url,
+        cfg.anonKey
+      );
+
+      async function checkBan() {
+        const { data, error } = await db
+          .from("icebreaker_bans")
+          .select("device_id, reason")
+          .eq("device_id", deviceId)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Ban check failed:", error);
+          return;
+        }
+
+        if (data) {
+          document.body.innerHTML = `
+            <div style="
+              min-height:100vh;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              background:#080808;
+              color:white;
+              font-family:Arial,sans-serif;
+              text-align:center;
+              padding:20px;
+            ">
+              <div>
+                <h1>🚫 You are banned</h1>
+                <p>This device has been blocked from Icebreaker.</p>
+                <p style="opacity:.6">
+                  Reason: ${data.reason || "No reason provided"}
+                </p>
+                <p style="opacity:.4;font-size:12px">
+                  Device ID: ${deviceId}
+                </p>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      checkBan();
+    } else {
+      console.error("Supabase configuration or library missing.");
+    }
+  </script>
 </body>
 </html>
-<script>
-  const cfg = window.SUPABASE_CONFIG;
-  const db = window.supabase.createClient(cfg.url, cfg.anonKey);
-
-  let deviceId = localStorage.getItem("icebreaker_device_id");
-
-  if (!deviceId) {
-    deviceId = crypto.randomUUID();
-    localStorage.setItem("icebreaker_device_id", deviceId);
-  }
-
-  async function checkBan() {
-    const { data, error } = await db
-      .from("icebreaker_bans")
-      .select("device_id, reason")
-      .eq("device_id", deviceId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Ban check failed:", error);
-      return;
-    }
-
-    if (data) {
-      document.body.innerHTML = `
-        <div style="
-          min-height:100vh;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          background:#080808;
-          color:white;
-          font-family:Arial,sans-serif;
-          text-align:center;
-          padding:20px;
-        ">
-          <div>
-            <h1>🚫 You are banned</h1>
-            <p>This device has been blocked from Icebreaker.</p>
-            <p style="opacity:.6">
-              Reason: ${data.reason || "No reason provided"}
-            </p>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  checkBan();
-</script>
