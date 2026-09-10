@@ -65,3 +65,53 @@
   <script src="../js/banner.js"></script>
 </body>
 </html>
+<script>
+  const cfg = window.SUPABASE_CONFIG;
+  const db = window.supabase.createClient(cfg.url, cfg.anonKey);
+
+  let deviceId = localStorage.getItem("icebreaker_device_id");
+
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem("icebreaker_device_id", deviceId);
+  }
+
+  async function checkBan() {
+    const { data, error } = await db
+      .from("icebreaker_bans")
+      .select("device_id, reason")
+      .eq("device_id", deviceId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Ban check failed:", error);
+      return;
+    }
+
+    if (data) {
+      document.body.innerHTML = `
+        <div style="
+          min-height:100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          background:#080808;
+          color:white;
+          font-family:Arial,sans-serif;
+          text-align:center;
+          padding:20px;
+        ">
+          <div>
+            <h1>🚫 You are banned</h1>
+            <p>This device has been blocked from Icebreaker.</p>
+            <p style="opacity:.6">
+              Reason: ${data.reason || "No reason provided"}
+            </p>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  checkBan();
+</script>
