@@ -2,6 +2,6 @@
 // The publishable/anon key is safe to expose in browser code when RLS is configured correctly.
 // DO NOT put a Supabase service_role/secret key here.
 const SUPABASE_CONFIG = {
-  url: "PASTE_YOUR_SUPABASE_PROJECT_URL_HERE",
-  anonKey: "PASTE_YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY_HERE"
+  url: "https://gereeworiesrheihpjth.supabase.co/rest/v1/",
+  anonKey: "sb_publishable_Ba6XKdRT5j1FvTdjz-sUnw_JK9aj1lt"
 };
