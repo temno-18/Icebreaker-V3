@@ -10,6 +10,21 @@
 <body>
   <div class="stars"></div>
 
+  <!-- Device ID -->
+  <div id="device-id-display" style="
+    position:fixed;
+    top:10px;
+    right:10px;
+    z-index:9999;
+    font-size:12px;
+    opacity:.6;
+    background:rgba(0,0,0,.5);
+    padding:6px 10px;
+    border-radius:8px;
+  ">
+    Device ID: <span id="device-id"></span>
+  </div>
+
   <div class="page-shell">
     <header class="hero">
       <div class="pill">ICEBREAKER</div>
@@ -21,15 +36,28 @@
       </p>
 
       <div class="hero-actions">
-        <a class="btn btn-primary" href="keys.html">Enter site</a>
-        <a class="btn btn-secondary" href="games/index.html">Browse games</a>
-        <button class="btn btn-secondary" onclick="cloakSite()">🕶️ Cloak</button>
+        <a class="btn btn-primary" href="keys.html">
+          Enter site
+        </a>
+
+        <a class="btn btn-secondary" href="games/index.html">
+          Browse games
+        </a>
+
+        <a class="btn btn-secondary" href="admin.html">
+          🔐 Admin
+        </a>
+
+        <button class="btn btn-secondary" onclick="cloakSite()">
+          🕶️ Cloak
+        </button>
       </div>
 
       <div class="credit">by Oscar</div>
     </header>
 
     <section class="home-grid">
+
       <a class="home-card" href="keys.html">
         <h3>Keys</h3>
         <p>Separate login page with user and admin keys.</p>
@@ -40,10 +68,16 @@
         <p>very cool skidded.</p>
       </a>
 
+      <a class="home-card" href="admin.html">
+        <h3>Admin</h3>
+        <p>Manage banned devices.</p>
+      </a>
+
       <a class="home-card" href="README.txt">
         <h3>Settings</h3>
         <p>may or may not exist yet</p>
       </a>
+
     </section>
   </div>
 
@@ -56,6 +90,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
+    /* =========================
+       DEVICE ID
+    ========================= */
+
     let deviceId = localStorage.getItem("icebreaker_device_id");
 
     if (!deviceId) {
@@ -63,19 +101,72 @@
       localStorage.setItem("icebreaker_device_id", deviceId);
     }
 
+    document.getElementById("device-id").textContent = deviceId;
+
+
+    /* =========================
+       ABOUT:BLANK CLOAK
+    ========================= */
+
     function cloakSite() {
-      window.location.href = "about:blank";
+      const cloak = window.open("about:blank", "_blank");
+
+      if (!cloak) {
+        alert("Please allow pop-ups for Icebreaker.");
+        return;
+      }
+
+      cloak.document.open();
+
+      cloak.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Icebreaker</title>
+
+          <style>
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 100%;
+              height: 100%;
+              overflow: hidden;
+              background: #080808;
+            }
+
+            iframe {
+              width: 100%;
+              height: 100%;
+              border: 0;
+            }
+          </style>
+        </head>
+
+        <body>
+          <iframe src="${window.location.href}"></iframe>
+        </body>
+        </html>
+      `);
+
+      cloak.document.close();
     }
+
+
+    /* =========================
+       SUPABASE / BAN CHECK
+    ========================= */
 
     const cfg = window.SUPABASE_CONFIG;
 
     if (cfg && window.supabase) {
+
       const db = window.supabase.createClient(
         cfg.url,
         cfg.anonKey
       );
 
       async function checkBan() {
+
         const { data, error } = await db
           .from("icebreaker_bans")
           .select("device_id, reason")
@@ -88,6 +179,7 @@
         }
 
         if (data) {
+
           document.body.innerHTML = `
             <div style="
               min-height:100vh;
@@ -100,13 +192,22 @@
               text-align:center;
               padding:20px;
             ">
+
               <div>
+
                 <h1>🚫 You are banned</h1>
-                <p>This device has been blocked from Icebreaker.</p>
-                <p style="opacity:.6">
-                  Reason: ${data.reason || "No reason provided"}
+
+                <p>
+                  This device has been blocked from Icebreaker.
                 </p>
+
+                <p style="opacity:.6">
+                  Reason:
+                  ${data.reason || "No reason provided"}
+                </p>
+
               </div>
+
             </div>
           `;
         }
@@ -115,5 +216,6 @@
       checkBan();
     }
   </script>
+
 </body>
 </html>
