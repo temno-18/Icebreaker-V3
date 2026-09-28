@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Icebreaker • Admin</title><link rel="stylesheet" href="css/style.css">
+<style>
+.admin-wrap{max-width:1100px;margin:40px auto;padding:20px}.admin-card{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:24px;margin-bottom:18px}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.admin-row{display:grid;grid-template-columns:minmax(220px,1fr) 150px 180px 100px;gap:12px;align-items:center;padding:13px 0;border-top:1px solid var(--line)}.muted{color:var(--muted)}.hidden{display:none!important}.danger{border-color:rgba(255,100,100,.35)}.online{font-weight:700}.offline{opacity:.55}@media(max-width:800px){.admin-grid{grid-template-columns:1fr}.admin-row{grid-template-columns:1fr;gap:5px}}
+</style>
+</head>
+<body><div class="stars"></div>
+<main class="admin-wrap">
+<div class="admin-card"><div class="pill">ADMIN</div><h1>Icebreaker control panel</h1><p class="muted">View active browser IDs and manage bans.</p></div>
+<section id="loginCard" class="admin-card">
+<h2>Admin sign in</h2><div class="admin-grid"><input id="email" class="input" type="email" placeholder="Admin email"><input id="password" class="input" type="password" placeholder="Password"></div><br>
+<button id="loginBtn" class="btn btn-primary">Sign in</button><p id="loginStatus" class="muted"></p>
+</section>
+<section id="panel" class="hidden">
+<div class="admin-card">
+<h2>Active users</h2><p class="muted">A user is considered active when their last heartbeat was within 2 minutes. IDs are browser-generated Icebreaker IDs, not hardware IDs.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><button id="refreshBtn" class="btn btn-primary">Refresh</button><input id="userSearch" class="input" style="max-width:320px" placeholder="Search device ID or page" oninput="renderUsers()"></div>
+<div id="userList" style="margin-top:12px"></div>
+</div>
+<div class="admin-card">
+<h2>Ban a device</h2><div class="admin-grid"><input id="deviceId" class="input" placeholder="Device ID"><input id="reason" class="input" placeholder="Reason (optional)"></div><br>
+<button id="banBtn" class="btn btn-primary">Ban device</button><button id="logoutBtn" class="btn btn-secondary">Sign out</button><p id="actionStatus" class="muted"></p>
+</div>
+<div class="admin-card"><h2>Banned devices</h2><div id="banList"></div></div>
+</section></main>
+<script src="js/supabase-config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const cfg=window.SUPABASE_CONFIG;
+const db=cfg?.url&&cfg?.anonKey?window.supabase.createClient(cfg.url,cfg.anonKey):null;
+let users=[];
+const $=id=>document.getElementById(id);
+$("loginBtn").onclick=async()=>{
+ if(!db)return $("loginStatus").textContent="Supabase is not configured.";
+ $("loginStatus").textContent="Signing in...";
+ const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+ if(error){$("loginStatus").textContent=error.message;return;}
+ await showPanel();
+};
+$("logoutBtn").onclick=async()=>{await db.auth.signOut();$("panel").classList.add("hidden");$("loginCard").classList.remove("hidden");};
+$("refreshBtn").onclick=loadAll;
+$("banBtn").onclick=async()=>{
+ const device_id=$("deviceId").value.trim(),reason=$("reason").value.trim();
+ if(!device_id)return $("actionStatus").textContent="Enter a device ID.";
+ const {error}=await db.from("icebreaker_bans").upsert({device_id,reason},{onConflict:"device_id"});
+ $("actionStatus").textContent=error?error.message:"Device banned.";
+ if(!error){$("deviceId").value="";$("reason").value="";await loadAll();}
+};
+async function showPanel(){$("loginCard").classList.add("hidden");$("panel").classList.remove("hidden");await loadAll();}
+async function loadAll(){await loadUsers();await loadBans();}
+async function loadUsers(){
+ const {data,error}=await db.from("icebreaker_active_users").select("device_id,last_seen,current_path,role,has_access_key").order("last_seen",{ascending:false}).limit(500);
+ if(error){$("userList").innerHTML='<p class="muted">'+escapeHtml(error.message)+'</p>';return;}
+ users=data||[];renderUsers();
+}
+function renderUsers(){
+ const q=($("userSearch").value||"").toLowerCase().trim();
+ const now=Date.now();
+ const filtered=users.filter(u=>!q||[u.device_id,u.current_path,u.role].some(v=>String(v||"").toLowerCase().includes(q)));
+ if(!filtered.length){$("userList").innerHTML='<p class="muted">No users found.</p>';return;}
+ $("userList").innerHTML='<div class="admin-row" style="border-top:0;font-weight:700"><div>Device ID</div><div>Status</div><div>Last seen</div><div>Key</div></div>'+
+ filtered.map(u=>{
+   const age=now-new Date(u.last_seen).getTime(), online=age<=120000;
+   return '<div class="admin-row"><div><strong>'+escapeHtml(u.device_id)+'</strong><br><span class="muted">'+escapeHtml(u.current_path||"")+'</span></div><div class="'+(online?"online":"offline")+'">'+(online?"● ACTIVE":"○ offline")+'</div><div>'+escapeHtml(formatAge(age))+'</div><div>'+ (u.has_access_key?"yes":"no") +'</div></div>';
+ }).join('');
+}
+function formatAge(ms){if(ms<0)ms=0;const s=Math.floor(ms/1000);if(s<60)return s+"s ago";const m=Math.floor(s/60);if(m<60)return m+"m ago";const h=Math.floor(m/60);return h+"h ago";}
+async function loadBans(){
+ const {data,error}=await db.from("icebreaker_bans").select("device_id,reason,created_at").order("created_at",{ascending:false});
+ if(error){$("banList").textContent=error.message;return;}
+ $("banList").innerHTML=data.length?data.map(r=>'<div class="admin-row"><div><strong>'+escapeHtml(r.device_id)+'</strong><br><span class="muted">'+escapeHtml(r.reason||"No reason")+'</span></div><div></div><div></div><button class="btn btn-secondary" onclick="unban(\''+encodeURIComponent(r.device_id)+'\')">Unban</button></div>').join(""):'<p class="muted">No banned devices.</p>';
+}
+window.unban=async encoded=>{const device_id=decodeURIComponent(encoded);const {error}=await db.from("icebreaker_bans").delete().eq("device_id",device_id);$("actionStatus").textContent=error?error.message:"Device unbanned.";await loadBans();};
+function escapeHtml(v){return String(v??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+db?.auth.getSession().then(({data})=>{if(data.session)showPanel();});
+setInterval(()=>{if(!$("panel").classList.contains("hidden"))loadUsers();},30000);
+</script></body></html>
